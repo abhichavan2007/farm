@@ -1,4 +1,4 @@
-export type UserRole = 'farmer' | 'buyer';
+export type UserRole = 'farmer' | 'buyer' | 'admin';
 export type BuyerCategory = 'individual' | 'bulk';
 
 export interface UserAccount {

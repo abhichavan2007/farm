@@ -94,6 +94,14 @@ interface AppContextType {
   selectedOrderForTracking: Order | null;
   setSelectedOrderForTracking: (order: Order | null) => void;
 
+  // Admin Controls
+  adminFarmerMode: boolean;
+  setAdminFarmerMode: (mode: boolean) => void;
+  toggleFarmerVerification: (verified?: boolean) => void;
+  adminUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
+  adminDeleteProduct: (productId: string) => void;
+  adminUpdateProduct: (productId: string, updates: Partial<Product>) => void;
+
   resetDemoData: () => void;
 }
 
@@ -116,7 +124,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Users state
   const [users, setUsers] = useState<UserAccount[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.USERS);
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (!saved) return INITIAL_USERS;
+    try {
+      const parsed = JSON.parse(saved);
+      const adminExists = parsed.some((u: UserAccount) => u.username === 'admin');
+      if (!adminExists) {
+        const adminAccount = INITIAL_USERS.find(u => u.username === 'admin');
+        if (adminAccount) {
+          return [...parsed, adminAccount];
+        }
+      }
+      return parsed;
+    } catch {
+      return INITIAL_USERS;
+    }
   });
 
   // Current session
@@ -126,6 +147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [adminFarmerMode, setAdminFarmerMode] = useState<boolean>(false);
 
   // Active Role based on current user
   const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
@@ -317,6 +339,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logoutUser = () => {
     setCurrentUser(null);
+    setAdminFarmerMode(false);
     setIsCartOpen(false);
     setSelectedOrderForTracking(null);
   };
@@ -427,6 +450,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteProduct = (productId: string) => {
     setProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const toggleFarmerVerification = (verified?: boolean) => {
+    setFarmer(prev => ({
+      ...prev,
+      verified: verified !== undefined ? verified : !prev.verified
+    }));
+  };
+
+  const adminUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
+    setOrders(prev => prev.map(o => {
+      if (o.id === orderId) {
+        return {
+          ...o,
+          status: newStatus,
+          timeline: [
+            ...o.timeline,
+            {
+              status: newStatus,
+              title: `Admin Override: ${newStatus.replace('_', ' ')}`,
+              description: `Order status updated to ${newStatus.replace('_', ' ')} by System Administrator.`,
+              timestamp: 'Just now',
+              completed: true
+            }
+          ]
+        };
+      }
+      return o;
+    }));
+  };
+
+  const adminDeleteProduct = (productId: string) => {
+    setProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const adminUpdateProduct = (productId: string, updates: Partial<Product>) => {
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, ...updates } : p));
   };
 
   // Cart operations
@@ -877,6 +937,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setProductForPhotoVerify,
         selectedOrderForTracking,
         setSelectedOrderForTracking,
+        adminFarmerMode,
+        setAdminFarmerMode,
+        toggleFarmerVerification,
+        adminUpdateOrderStatus,
+        adminDeleteProduct,
+        adminUpdateProduct,
         resetDemoData
       }}
     >

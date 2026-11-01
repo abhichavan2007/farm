@@ -12,7 +12,8 @@ import {
   ChevronDown,
   Layers,
   ShoppingBag,
-  Building2
+  Building2,
+  Shield
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -36,14 +37,20 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
     markNotificationRead,
     markAllNotificationsRead,
     setSelectedOrderForTracking,
-    orders
+    orders,
+    adminFarmerMode,
+    setAdminFarmerMode
   } = useApp();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  const relevantNotifications = notifications.filter(n => n.targetRole === currentRole);
-  const unreadCount = currentRole === 'farmer' ? unreadFarmerNotifications : unreadBuyerNotifications;
+  const relevantNotifications = notifications.filter(n => 
+    currentRole === 'admin' ? true : n.targetRole === currentRole
+  );
+  const unreadCount = currentRole === 'admin' 
+    ? notifications.filter(n => !n.read).length
+    : currentRole === 'farmer' ? unreadFarmerNotifications : unreadBuyerNotifications;
 
   const handleNotificationClick = (orderId?: string, notifId?: string) => {
     if (notifId) markNotificationRead(notifId);
@@ -56,11 +63,15 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
     setIsNotifOpen(false);
   };
 
-  const displayName = currentRole === 'farmer' 
+  const displayName = currentRole === 'admin'
+    ? 'System Administrator'
+    : currentRole === 'farmer' 
     ? farmer.name || currentUser?.username || 'Farmer' 
     : (buyerType === 'bulk' && activeBuyer.businessName ? activeBuyer.businessName : activeBuyer.name || currentUser?.username || 'Customer');
 
-  const avatarUrl = currentRole === 'farmer' ? farmer.avatarUrl : activeBuyer.avatarUrl;
+  const avatarUrl = currentRole === 'admin'
+    ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+    : currentRole === 'farmer' ? farmer.avatarUrl : activeBuyer.avatarUrl;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
@@ -82,18 +93,68 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
             </div>
 
             {/* Role Badge */}
-            <span className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full ml-2 border ${
-              currentRole === 'farmer' 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-sky-50 text-sky-800 border-sky-200'
-            }`}>
-              {currentRole === 'farmer' ? '👨‍🌾 Farmer Portal' : '🛒 Customer Portal'}
-            </span>
+            {currentRole === 'admin' ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-0.5 rounded-full ml-2 border bg-indigo-50 text-indigo-900 border-indigo-300">
+                <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{adminFarmerMode ? '👨‍🌾 Farmer Portal (Superuser)' : '🛡️ Admin Console'}</span>
+              </span>
+            ) : currentRole === 'farmer' ? (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full ml-2 border bg-emerald-50 text-emerald-800 border-emerald-200">
+                👨‍🌾 Farmer Portal
+              </span>
+            ) : (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full ml-2 border bg-sky-50 text-sky-800 border-sky-200">
+                🛒 Customer Portal
+              </span>
+            )}
           </div>
 
           {/* Navigation Items (Role Specific) */}
           <div className="hidden md:flex items-center space-x-1 text-xs font-semibold text-slate-600">
-            {currentRole === 'farmer' ? (
+            {currentRole === 'admin' ? (
+              adminFarmerMode ? (
+                <>
+                  <button
+                    onClick={() => onNavigateTab && onNavigateTab('PRODUCTS')}
+                    className={`px-3 py-2 rounded-xl transition ${activeTab === 'PRODUCTS' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-slate-900 hover:bg-slate-50'}`}
+                  >
+                    Produce Inventory
+                  </button>
+                  <button
+                    onClick={() => onNavigateTab && onNavigateTab('ORDERS')}
+                    className={`px-3 py-2 rounded-xl transition ${activeTab === 'ORDERS' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-slate-900 hover:bg-slate-50'}`}
+                  >
+                    Incoming Orders
+                  </button>
+                  <button
+                    onClick={() => onNavigateTab && onNavigateTab('PROFILE')}
+                    className={`px-3 py-2 rounded-xl transition ${activeTab === 'PROFILE' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-slate-900 hover:bg-slate-50'}`}
+                  >
+                    Farm Profile
+                  </button>
+                  <button
+                    onClick={() => setAdminFarmerMode(false)}
+                    className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition flex items-center gap-1 ml-2 text-xs shadow-sm"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Return to Admin Console</span>
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">
+                    Administrator Mode Active
+                  </span>
+                  <button
+                    onClick={() => setAdminFarmerMode(true)}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold transition flex items-center gap-1.5 text-xs"
+                  >
+                    <Sprout className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Operate Farmer Side</span>
+                  </button>
+                </div>
+              )
+            ) : currentRole === 'farmer' ? (
               <>
                 <button
                   onClick={() => onNavigateTab && onNavigateTab('PRODUCTS')}
@@ -251,7 +312,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
                     {displayName}
                   </div>
                   <div className="text-[10px] text-slate-400 capitalize">
-                    {currentRole === 'farmer' ? 'Verified Producer' : buyerType === 'bulk' ? 'Commercial Buyer' : 'Customer'}
+                    {currentRole === 'admin' ? (adminFarmerMode ? 'Farmer Mode' : 'Super Administrator') : currentRole === 'farmer' ? 'Verified Producer' : buyerType === 'bulk' ? 'Commercial Buyer' : 'Customer'}
                   </div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -264,6 +325,21 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateTab, activeTab }) => {
                     <p className="text-xs font-bold text-slate-900 truncate">{displayName}</p>
                     <p className="text-[10px] text-slate-400 truncate">{currentUser?.email}</p>
                   </div>
+
+                  {currentRole === 'admin' && (
+                    <div className="py-1 border-b border-slate-100">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setAdminFarmerMode(!adminFarmerMode);
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 font-bold"
+                      >
+                        <Shield className="w-4 h-4 text-indigo-600" />
+                        <span>{adminFarmerMode ? 'Return to Admin Console' : 'Operate as Farmer'}</span>
+                      </button>
+                    </div>
+                  )}
 
                   <div className="py-1">
                     <button

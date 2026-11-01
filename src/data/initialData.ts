@@ -27,6 +27,15 @@ export const INITIAL_USERS: UserAccount[] = [
     role: 'buyer',
     profileCompleted: true,
     createdAt: '2026-09-10T10:00:00Z'
+  },
+  {
+    id: 'user_admin_01',
+    username: 'admin',
+    email: 'admin@farm2market.com',
+    password: 'admin123',
+    role: 'admin',
+    profileCompleted: true,
+    createdAt: '2026-08-15T00:00:00Z'
   }
 ];
 

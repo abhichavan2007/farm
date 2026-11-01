@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   Sprout, 
@@ -13,7 +13,8 @@ import {
   Building2, 
   TrendingUp, 
   AlertCircle,
-  Truck
+  Truck,
+  Shield
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -22,6 +23,8 @@ export const AuthPage: React.FC = () => {
 
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [selectedRole, setSelectedRole] = useState<UserRole>('farmer');
+  const [adminClicks, setAdminClicks] = useState(0);
+  const [adminModeUnlocked, setAdminModeUnlocked] = useState(false);
 
   // Login form state
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -35,6 +38,37 @@ export const AuthPage: React.FC = () => {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Hidden admin keyboard shortcut: Ctrl+Shift+A or Alt+A
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') || (e.altKey && e.key.toLowerCase() === 'a')) {
+        e.preventDefault();
+        setAdminModeUnlocked(true);
+        setSelectedRole('farmer');
+        setAuthMode('LOGIN');
+        setLoginIdentifier('admin');
+        setLoginPassword('admin123');
+        setErrorMessage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleFarmerBadgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = adminClicks + 1;
+    setAdminClicks(next);
+    if (next >= 3) {
+      setAdminModeUnlocked(true);
+      setSelectedRole('farmer');
+      setAuthMode('LOGIN');
+      setLoginIdentifier('admin');
+      setLoginPassword('admin123');
+      setErrorMessage(null);
+    }
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,19 +206,30 @@ export const AuthPage: React.FC = () => {
                       setSelectedRole('farmer');
                       setErrorMessage(null);
                     }}
-                    className={`p-3.5 rounded-2xl border text-left transition flex items-center gap-3 ${
+                    className={`p-3.5 rounded-2xl border text-left transition flex items-center gap-3 relative ${
                       selectedRole === 'farmer'
                         ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-600/20 shadow-sm'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
-                      selectedRole === 'farmer' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'
-                    }`}>
+                    <div 
+                      onClick={handleFarmerBadgeClick}
+                      title="Farmer Account"
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-transform active:scale-90 ${
+                        selectedRole === 'farmer' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
                       👨‍🌾
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-slate-900">Farmer / Producer</div>
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>Farmer / Producer</span>
+                        {adminModeUnlocked && (
+                          <span className="text-[9px] bg-indigo-100 text-indigo-700 font-extrabold px-1.5 py-0.2 rounded">
+                            Admin Ready
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-slate-500">Sell your harvest directly</div>
                     </div>
                   </button>
@@ -305,6 +350,15 @@ export const AuthPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {loginIdentifier.trim().toLowerCase() === 'admin' && (
+                    <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs flex items-center gap-2 animate-in fade-in">
+                      <Shield className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                      <div>
+                        <strong>Executive Console:</strong> Grants admin supervision and live farmer portal operations.
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     className={`w-full py-3 px-4 rounded-xl font-bold text-xs text-white flex items-center justify-center gap-2 shadow-md transition ${
@@ -403,6 +457,15 @@ export const AuthPage: React.FC = () => {
                     ℹ️ <strong>Next Step:</strong> Immediately following registration, you will be guided to complete your {selectedRole === 'farmer' ? 'farm location, acreage and payout details' : 'delivery address and business information'}.
                   </div>
 
+                  {loginIdentifier.trim().toLowerCase() === 'admin' && (
+                    <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs flex items-center gap-2 animate-in fade-in">
+                      <Shield className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                      <div>
+                        <strong>Executive Console:</strong> Grants admin supervision and live farmer portal operations.
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     className={`w-full py-3 px-4 rounded-xl font-bold text-xs text-white flex items-center justify-center gap-2 shadow-md transition ${
@@ -458,6 +521,22 @@ export const AuthPage: React.FC = () => {
                   className="px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 font-medium transition"
                 >
                   🏢 Bulk Buyer (Royal Spice)
+                </button>
+                {/* Subtle hidden key for administrator */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminModeUnlocked(true);
+                    setSelectedRole('farmer');
+                    setAuthMode('LOGIN');
+                    setLoginIdentifier('admin');
+                    setLoginPassword('admin123');
+                    setErrorMessage(null);
+                  }}
+                  className="p-1.5 text-slate-300 hover:text-indigo-600 rounded-lg transition ml-auto"
+                  title="Administrative Console"
+                >
+                  <Lock className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
